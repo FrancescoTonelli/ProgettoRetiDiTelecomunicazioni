@@ -88,7 +88,7 @@ class GraphGUI:
             x1, y1 = self.nodeVisuals[src].x, self.nodeVisuals[src].y
             x2, y2 = self.nodeVisuals[dst].x, self.nodeVisuals[dst].y
             
-            shape = self.canvas.create_line(x1, y1, x2, y2)
+            shape = self.canvas.create_line(x1, y1, x2, y2, fill="black")
             self.canvas.tag_lower(shape)
             x, y = (x1 + x2) / 2, (y1 + y2) / 2
             text = self.canvas.create_text(x, y, text=str(w), fill="red")
