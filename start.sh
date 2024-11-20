@@ -30,4 +30,4 @@ fi
 
 echo "L'ambiente virtuale è attivato. Per uscire, eseguire 'deactivate'."
 
-python main.py
+python DVR_view.py
