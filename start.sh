@@ -9,18 +9,12 @@ fi
 # Activate the virtual environment
 source venv/bin/activate
 
-# Install required Python packages from requirements.txt
-if [ -f "requirements.txt" ]; then
-    echo "Installing dependencies from requirements.txt..."
-    pip install -r requirements.txt
+# Install required Python packages
+echo "Installing dependencies..."
+    pip install tabulate
+    sudo apt install python3-tk -y
     clear
-else
-    echo "No requirements.txt found, skipping dependency installation."
-fi
 
 # Run the script
 echo "Running the script..."
 python3 DVR_view.py
-
-# Deactivate the virtual environment after running
-deactivate

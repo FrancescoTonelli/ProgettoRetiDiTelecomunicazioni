@@ -8,14 +8,9 @@ IF NOT EXIST "venv" (
 REM Activate the virtual environment
 call venv\Scripts\activate.bat
 
-REM Install required Python packages from requirements.txt
-IF EXIST requirements.txt (
-    echo Installing dependencies from requirements.txt...
-    pip install -r requirements.txt
-    cls
-) ELSE (
-    echo No requirements.txt found, skipping dependency installation.
-)
+REM Install required Python packages
+echo Installing dependencies...
+pip install tabulate tk
 
 REM Run the script
 echo Running the script...
