@@ -20,7 +20,7 @@ fi
 
 # Run the script
 echo "Running the script..."
-python DVR_view.py
+python3 DVR_view.py
 
 # Deactivate the virtual environment after running
 deactivate
