@@ -204,9 +204,12 @@ class EdgesMap:
             str: The edge map as a string showing connections and weights.
         """
         toRet = "Edge Map\n"
+        seen = []
         for k in self.__edgeMap.keys():
             for e in self.__edgeMap[k]:
-              toRet += f'({k}) -- {e.w} --> ({e.dst})\n'
+                if (k, e.dst) not in seen and (e.dst, k) not in seen:
+                    seen.append((k, e.dst))
+                    toRet += f'({k}) -- {e.w} -- ({e.dst})\n'
         return toRet
     
     def doExistsNode(self, nodeId: int) -> bool:
