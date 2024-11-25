@@ -17,8 +17,8 @@ IF EXIST requirements.txt (
     echo No requirements.txt found, skipping dependency installation.
 )
 
-REM Run the DVR_view.py script
-echo Running DVR_view.py...
+REM Run the script
+echo Running the script...
 python DVR_view.py
 
 REM Deactivate the virtual environment after running
