@@ -135,20 +135,12 @@ class WebNode:
         deprecated = []
         
         for k in self.__routingMap.keys():
-            if self.__routingMap[k].nextHop == senderId and k != senderId:
-                exists = False
-                for k1 in routingMap.keys():
-                    if k1 == k:
-                        exists = True
-                        break
-                
-                if not exists:
-                    deprecated.append(k)
+            if self.__routingMap[k].nextHop == senderId and k != senderId and k not in routingMap.keys():
+                deprecated.append(k)
         
         for k in deprecated:
             del self.__routingMap[k]
             changes = True
-                
         
         for k in routingMap.keys():
             if k != self.__id and (k not in self.__routingMap or self.__routingMap[k].dist > routingMap[k].dist + self.__routingMap[senderId].dist):
