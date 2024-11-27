@@ -3,19 +3,50 @@ from tkinter import messagebox
 import DVR_logic
 
 class VisualObject:
+    """
+    Represents a visual object on the canvas, such as a node or an edge.
+    VisualObject instances are used in dictionaries, assosiating the object's identifier with its representation.
     
+    Attributes:
+        shape (int): The shape identifier on the canvas.
+        text (int): The text identifier on the canvas.
+        x (float): The x-coordinate of the object on the canvas.
+        y (float): The y-coordinate of the object on the canvas.
+    """
     def __init__(self, shape: int, text: int, x: float, y: float):
+        """
+        Initializes the visual representation of an object.
         
+        Args:
+            shape (int): The shape identifier on the canvas.
+            text (int): The text identifier on the canvas.
+            x (float): The x-coordinate on the canvas.
+            y (float): The y-coordinate on the canvas.
+        """
         self.shape: int = shape
         self.text: int = text
         self.x: float = x
         self.y: float = y
 
-
 class GraphGUI:
+    """
+    A graphical user interface for managing and simulating a network graph.
     
+    Attributes:
+        root (tk.Tk): The root Tkinter window.
+        idCounter (int): Counter for node IDs.
+        NodeList (list): List of WebNode objects in the network.
+        NetManager (EdgesMap): Manages edges and nodes in the network.
+        nodeVisuals (dict[int, VisualObject]): Stores visual representations of nodes.
+        edgeVisuals (dict[tuple[int, int], VisualObject]): Stores visual representations of edges.
+    """
     def __init__(self, root):
+        """
+        Initializes the Graph GUI and sets up the Tkinter widgets and canvas.
         
+        Args:
+            root (tk.Tk): The root Tkinter window.
+        """
         self.root = root
         self.root.title("DVR Simulator")
         
@@ -55,7 +86,12 @@ class GraphGUI:
         execute_button.pack(side='bottom', pady=5)
 
     def createNode(self, event):
+        """
+        Creates a new node at the location of a left mouse click.
         
+        Args:
+            event (tk.Event): The mouse event containing the click location.
+        """
         newNode = self.NetManager.addNode(self.idCounter)
         if newNode != None:
             self.NodeList.append(newNode)
@@ -68,7 +104,10 @@ class GraphGUI:
             self.idCounter += 1
 
     def addEdge(self):
-        
+        """
+        Adds an edge between two nodes using input from the control panel.
+        Validates input and ensures edge does not already exist.
+        """
         try:
             if not self.src_entry.get().isdigit():
                 raise ValueError("Source must be an integer")
@@ -112,7 +151,18 @@ class GraphGUI:
             messagebox.showerror("Error", ve)
 
     def findClosestItem(self, event) -> tuple[int, int]:
+        """
+        Finds the closest visual object (node or edge) to the given click location.
         
+        Args:
+            event (tk.Event): The mouse event containing the click location.
+        
+        Returns:
+            tuple[int, int]: A tuple containing the closest node or edge id.
+            - If a node is closer -> (nodeId, None)
+            - If an edge is closer -> (srcId, dstId)
+            - If no objects are found -> (None, None)
+        """
         minDistNode = None
         minDistEdge = None
         minNode = None
@@ -138,7 +188,12 @@ class GraphGUI:
             return (None, None)
     
     def handleRightClick(self, event):
+        """
+        Handles a right-click event to delete a node or edge.
         
+        Args:
+            event (tk.Event): The mouse event containing the click location.
+        """
         items = self.findClosestItem(event)
         if items[0] != None:
             if items[1] == None:
@@ -147,7 +202,12 @@ class GraphGUI:
                 self.deleteEdge(items)
 
     def deleteNode(self, id: int):
+        """
+        Deletes a node and all associated edges from the graph and canvas.
         
+        Args:
+            id (int): The identifier of the node to delete.
+        """
         if messagebox.askyesno("Confirm Deletion", f"Do you want to delete node {id}?"):
             
             self.canvas.delete(self.nodeVisuals[id].shape)
@@ -167,7 +227,12 @@ class GraphGUI:
             DVR_logic.updateNet(self.NodeList, self.NetManager, nbs)
 
     def deleteEdge(self, edgeIds:tuple[int, int]):
+        """
+        Deletes an edge from the graph and canvas.
         
+        Args:
+            edgeIds (tuple[int, int]): The identifiers of the two nodes connected by the edge.
+        """
         edge = (min(edgeIds[0], edgeIds[1]), max(edgeIds[0], edgeIds[1]))
         
         if edge in self.edgeVisuals.keys():
@@ -179,15 +244,17 @@ class GraphGUI:
                 DVR_logic.updateNet(self.NodeList, self.NetManager, [edge[0], edge[1]])
 
     def printRoutingTables(self):
-        
+        """
+        Writes the routing tables of all nodes to a file and displays a success message.
+        """
         path = 'RoutingTables.txt'
         
         with open(path, 'w') as file:
             for wn in self.NodeList:
                 file.write(str(wn)+"\n")
-                for e in wn.getRoutingMap().keys():
-                    if not DVR_logic.is_minimum_distance(self.NetManager.getMap(), wn.getId(), e, wn.getRoutingMap()[e].dist):
-                        file.write(f"{wn.getId()} -> {e} is wrong\n\n")
+                # for e in wn.getRoutingMap().keys():
+                #     if not DVR_logic.is_minimum_distance(self.NetManager.getMap(), wn.getId(), e, wn.getRoutingMap()[e].dist):
+                #         file.write(f"{wn.getId()} -> {e} is wrong\n\n")
                                     
             file.write(str(self.NetManager)+"\n")
                 

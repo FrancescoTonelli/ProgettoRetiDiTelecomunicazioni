@@ -51,6 +51,7 @@ coverage.xml
 .pytest_cache/
 cover/
 RoutingTables.txt
+log.txt
 
 # Translations
 *.mo
