@@ -1,92 +1,49 @@
 from tabulate import tabulate
+import heapq
 
 class RoutingMapEntry:
     """
-    Represents a single entry in a node's routing table.\n
-    The routing table of a node is a dictionary where the keys represent the destination nodes, 
-    and the values are instances of RoutingMapEntry.
-
+    Represents a single entry in the routing table of a node.
+    A routing table is a dictionary, where the key is the destination node identifier
+    and the value is a RoutingMapEntry object.
     Attributes:
-        dist (int): The distance to the destination node.
-        nextHop (int): The next hop node id to reach the destination.
+        dist (int): The distance to the destination.
+        nextHop (int): The identifier of the next hop node.
     """
     def __init__(self, dist:int, nextHop: int):
         """
-        Initializes a RoutingMapEntry with distance and next hop.
-
+        Constructor to initialize a routing table entry.
         Args:
-            dist (int): The distance to the destination node.
-            nextHop (int): The next hop node id.
+            dist (int): The distance to the destination.
+            nextHop (int): The identifier of the next hop node.
         """
         self.dist:int = dist
         self.nextHop:int = nextHop
         
 class EdgeMapEntry:
-    """
-    Represents an edge in an edge map.\n
-    In the EdgesMap, the physical edges are stored in a dictionary, 
-    where the keys are the nodes present in the network, 
-    and the values are lists of EdgeMapEntry instances for each node 
-
-    Attributes:
-        dst (int): The destination node id.
-        w (int): The weight of the edge.
-    """
+    
     def __init__(self, dst:int, w: int):
-        """
-        Initializes an EdgeMapEntry instance representing an edge.
-
-        Args:
-            dst (int): The destination node id.
-            w (int): The weight of the edge.
-        """
+        
         self.dst:int = dst
         self.w:int = w
 
 class WebNode:
-    """
-    Represents a node in the network with a unique id and routing capabilities.
-
-    Attributes:
-        __routingMap (dict[int, RoutingMapEntry]): The routing table of the node.
-        __id (int): The unique identifier of the node.
-    """
     
     def __init__(self, id:int):
-        """
-        Initializes a WebNode with a unique ID and an empty routing table.
-
-        Args:
-            id (int): The unique identifier for the node.
-        """
+        
         self.__routingMap:dict[int, RoutingMapEntry] = {}
         self.__id:int = id
         
     def getId(self) -> int:
-        """
-        Returns the unique identifier of the node.
-
-        Returns:
-            int: The unique id of the node.
-        """
+        
         return self.__id
     
     def getRoutingMap(self) -> dict[int, RoutingMapEntry]:
-        """
-        Returns the routing map of the node.
-
-        Returns:
-            dict[int, RoutingMapEntry]: The node's routing table.
-        """
+        
         return self.__routingMap
     
     def __str__(self):
-        """
-        Returns a string representation of the node's routing table in tabular format.
-
-        Returns:
-            str: The routing table formatted as a table.
-        """
+        
         if len(self.__routingMap.keys()) > 0:
             table_data = [
                 [str(k), str(self.__routingMap[k].dist), str(self.__routingMap[k].nextHop)]
@@ -106,95 +63,89 @@ class WebNode:
 
         return f"Node {str(self.__id)}'s routing table:\n{table}\n"
 
-    def updateRoutes(self, senderId: int, routingMap: dict[int, RoutingMapEntry]) -> bool:
-        """
-        Updates the node's routing table based on information from a neighboring node.
-        - If the sender is not registered, the node adds it to its routing table.
-        - If the node still cannot register the sender, it stops and returns False.
-        - If any of the node's routes passing through the sender are no longer reachable, it removes them.
-        - The node updates its routing table with the sender's table if the sender's routes are better than the current ones or if they do not already exist.
-            
-        Args:
-            senderId (int): The id of the sender node providing the routing update.
-            routingMap (dict[int, RoutingMapEntry]): The routing table of the sender node.
-
-        Returns:
-            bool: True if the routing table was updated, False otherwise.
-        """
+    def updateRoutes(self, senderId: int, routingMap: dict[int, RoutingMapEntry], phisical:list[EdgeMapEntry]) -> bool:
+        actionLog(f"Node {self.__id}: received {senderId}'s table to update")
         registeredSender = senderId in self.__routingMap.keys()
         
         if self.__id in routingMap.keys() and (not registeredSender or self.__routingMap[senderId].dist > routingMap[self.__id].dist):
+            messageLog(f"Node {self.__id}: adding sender {senderId}: w:{routingMap[self.__id].dist}, nh:{senderId}")
             self.__routingMap[senderId] = RoutingMapEntry(routingMap[self.__id].dist, senderId)
             registeredSender = True
         
         if not registeredSender:
+            messageLog(f"Node {self.__id}: has no route to {senderId}")
             return False
         
         changes = False
-        
         deprecated = []
         
         for k in self.__routingMap.keys():
             if self.__routingMap[k].nextHop == senderId and k != senderId and k not in routingMap.keys():
+                messageLog(f"Node {self.__id}: route to {k} deprecated")
                 deprecated.append(k)
         
         for k in deprecated:
-            del self.__routingMap[k]
+            updated = False
+            for e in phisical:
+                if e.dst == k:
+                    messageLog(f"Node {self.__id}: updating deprecated route to {k}: w:{e.w}, nh:{e.dst}")
+                    self.__routingMap[k] = RoutingMapEntry(e.w, e.dst)
+                    updated = True
+                    break
+            if not updated:
+                messageLog(f"Node {self.__id}: removing deprecated route to {k}")
+                del self.__routingMap[k]
             changes = True
+            
         
         for k in routingMap.keys():
             if k != self.__id and (k not in self.__routingMap or self.__routingMap[k].dist > routingMap[k].dist + self.__routingMap[senderId].dist):
+                messageLog(f"Node {self.__id}: updating route to {k}: w:{routingMap[k].dist + self.__routingMap[senderId].dist}, nh:{senderId}")
                 self.__routingMap[k] = RoutingMapEntry(routingMap[k].dist + self.__routingMap[senderId].dist, senderId)
                 changes = True
-            
+        
+        if changes:
+            messageLog(f"\n{str(self)}\n")
         return changes
     
     def readRoutes(self, edges: list[EdgeMapEntry]):
-        """
-        Updates the node's routing table based on the direct edges in the network.
-        - If some of the current routes are no longer reachable, the node removes them.
-        - The node updates its routes if some paths have not been added yet or if they are better than the current ones.
-
-        Args:
-            edges (list[EdgeMapEntry]): A list of edges directly connected to the node.
-        """
+        messageLog(f"Node {self.__id}: reading routes\n")
         entryToDel = []
+        
         for k in self.__routingMap.keys():
             exists = False
             for e in edges:
                 if e.dst == self.__routingMap[k].nextHop:
+                    if e.w != self.__routingMap[k].dist and e.dst == k:
+                        self.__routingMap[k].dist = e.w
+                        messageLog(f"Node {self.__id}: found deprecated route to {k}\n")
+                        for k1 in self.__routingMap.keys():
+                            if self.__routingMap[k1].nextHop == e.dst and k1 not in entryToDel:
+                                entryToDel.append(k1)
                     exists = True
                     break
-            if not exists:
+            if not exists and k not in entryToDel:
                 entryToDel.append(k)
             
         for k in entryToDel:
+            messageLog(f"Node {self.__id}: removing route to {k}\n")
             del self.__routingMap[k]
             
         for e in edges:
             if e.dst not in self.__routingMap.keys() or self.__routingMap[e.dst].dist > e.w:
+                messageLog(f"Node {self.__id}: updating route to {e.dst}: w:{e.w}, nh:{e.dst}\n")
                 self.__routingMap[e.dst] = RoutingMapEntry(e.w, e.dst)
+                
+        messageLog(f"\n{str(self)}\n")
         
 class EdgesMap:
-    """
-    Represents the entire network topology, managing nodes and edges.
-
-    Attributes:
-        __edgeMap (dict[int, list[EdgeMapEntry]]): A mapping of node IDs to their connected edges.
-    """
+    
     def __init__(self) -> None:
-        """
-        Initializes an empty network topology.
-        """
+        
         self.__edgeMap: dict[int, list[EdgeMapEntry]] = {}
         
     def __str__(self):
-        """
-        Returns a string representation of the entire network's edge map.
-
-        Returns:
-            str: The edge map as a string showing connections and weights.
-        """
+        
         toRet = "Edge Map\n"
         seen = []
         for k in self.__edgeMap.keys():
@@ -204,29 +155,16 @@ class EdgesMap:
                     toRet += f'({k}) -- {e.w} -- ({e.dst})\n'
         return toRet
     
+    def getMap(self) -> dict[int, list[EdgeMapEntry]]:
+        
+        return self.__edgeMap
+    
     def doExistsNode(self, nodeId: int) -> bool:
-        """
-        Checks if a node exists in the network.
-
-        Args:
-            nodeId (int): The id of the node to check.
-
-        Returns:
-            bool: True if the node exists, False otherwise.
-        """
+        
         return nodeId in self.__edgeMap.keys()
     
     def doExistsEdge(self, srcId: int, dstId: int) -> bool:
-        """
-        Checks if an edge exists between two nodes.
-
-        Args:
-            srcId (int): The source node id.
-            dstId (int): The destination node id.
-
-        Returns:
-            bool: True if the edge exists, False otherwise.
-        """
+        
         if srcId not in self.__edgeMap.keys() or dstId not in self.__edgeMap.keys():
             return False
         
@@ -237,15 +175,7 @@ class EdgesMap:
         return False
         
     def addEdge(self, srcId: int, dstId: int, weight: int, NodeList: list[WebNode]):
-        """
-        Adds an edge between two nodes (if they exist) and make them read their physical connections.
-
-        Args:
-            srcId (int): The source node id.
-            dstId (int): The destination node id.
-            weight (int): The weight of the edge.
-            NodeList (list[WebNode]): The list of all nodes in the network.
-        """
+        
         if srcId not in self.__edgeMap.keys() or dstId not in self.__edgeMap.keys():
             return
         
@@ -260,17 +190,11 @@ class EdgesMap:
             update = True
             
         if update:
+            actionLog(f"Edge {srcId} - {dstId} added")
             makeNodesReadNet([srcId, dstId], self, NodeList)
     
     def removeEdge(self, srcId: int, dstId: int, NodeList: list[WebNode]):
-        """
-        Removes an edge between two nodes (if it exists) and make them read their physical connections.
-
-        Args:
-            srcId (int): The source node id.
-            dstId (int): The destination node id.
-            NodeList (list[WebNode]): The list of all nodes in the network.
-        """
+        
         if srcId not in self.__edgeMap.keys() or dstId not in self.__edgeMap.keys():
             return
         
@@ -283,38 +207,28 @@ class EdgesMap:
             if e.dst == srcId:
                 self.__edgeMap[dstId].remove(e)
                 break
-        
+        actionLog(f"Edge {srcId} - {dstId} removed")
         makeNodesReadNet([srcId, dstId], self, NodeList)
     
     def addNode(self, nodeId: int) -> WebNode:
-        """
-        Adds a new node to the network if no other node with the same id exists.
-
-        Args:
-            nodeId (int): The id of the node to add.
-
-        Returns:
-            WebNode: The newly created node, or None if the node already exists.
-        """
+        
         if nodeId not in self.__edgeMap.keys():
+            actionLog(f"Node {nodeId} added")
             self.__edgeMap[nodeId] = []
             return WebNode(nodeId)
         return None
     
     def removeNode(self, nodeId: int, NodeList: list[WebNode]):
-        """
-        Removes a node and all of its connections from the network and make its neighbors read their physical connections.
-
-        Args:
-            nodeId (int): The id of the node to remove.
-            NodeList (list[WebNode]): The list of all nodes in the network.
-        """
+        
         if nodeId not in self.__edgeMap.keys():
             return
         
         neighbors = self.getNeighborsId(nodeId)
         
+        actionLog(f"Node {nodeId} removed")
+        
         NodeList.remove(NodeList[findNodePos(nodeId, NodeList)])
+        
         
         for k in self.__edgeMap.keys():
             i = 0
@@ -328,27 +242,11 @@ class EdgesMap:
         makeNodesReadNet(neighbors, self, NodeList)
     
     def getEdges(self, nodeId: int) -> list[EdgeMapEntry]:
-        """
-        Retrieves all edges connected to a specific node.
-
-        Args:
-            nodeId (int): The id of the node.
-
-        Returns:
-            list[EdgeMapEntry]: A list of edges connected to the node.
-        """
+        
         return self.__edgeMap[nodeId] if nodeId in self.__edgeMap.keys() else None
     
     def getNeighborsId(self, nodeId: int) -> list[int]:
-        """
-        Retrieves the ids of all neighboring nodes.
-
-        Args:
-            nodeId (int): The id of the node.
-
-        Returns:
-            list[int]: A list of neighboring node ids.
-        """
+        
         edges = self.getEdges(nodeId)
         nb = []
         for e in edges:
@@ -356,55 +254,64 @@ class EdgesMap:
         return nb
 
 def findNodePos(id: int, NodeList: list[WebNode]) -> int:
-    """
-    Finds the position of a node in the node list.
-
-    Args:
-        id (int): The id of the node to find.
-        NodeList (list[WebNode]): The list of all nodes.
-
-    Returns:
-        int: The index of the node in the list, or None if not found.
-    """
+    
     for n in NodeList:
         if n.getId() == id:
             return NodeList.index(n)
     return None
 
 def makeNodesReadNet(nodesId: list[int], NetManager: EdgesMap, NodeList: list[WebNode]):
-    """
-    Updates the routing tables of specific nodes based on the current network topology.
-
-    Args:
-        nodesId (list[int]): A list of node ids to update.
-        NetManager (EdgesMap): The network manager containing the edges.
-        NodeList (list[WebNode]): The list of all nodes in the network.
-    """
+    
     for n in nodesId:
         NodeList[findNodePos(n, NodeList)].readRoutes(NetManager.getEdges(n))
 
-def updateNet(NodeList: list[WebNode], NetManager: EdgesMap, priorityNodesId:list[int] = []):
-    """
-    Updates the routing tables of all nodes in the network, giving priority to those that are possibly specified.
-
-    Args:
-        NodeList (list[WebNode]): The list of all nodes in the network.
-        NetManager (EdgesMap): The network manager containing the edges.
-        priorityNodesId (list[int], optional): A list of node ids to prioritize for updates.
-    """
-    queue = []
-    
-    for id in priorityNodesId:
-        queue.append(id)
-        
-    for wn in NodeList:
-        if wn.getId() not in queue:
-            queue.append(wn.getId())
+def updateNet(NodeList: list[WebNode], NetManager: EdgesMap, priorityNodesId:list[int]):
     
     changes = True
     while changes:
+        queue = priorityNodesId[:]
+        
         changes = False
-        for id in queue:
+        while queue:
+            id = queue.pop(0)
             for nb in NetManager.getNeighborsId(id):
-                if NodeList[findNodePos(nb, NodeList)].updateRoutes(id, NodeList[findNodePos(id, NodeList)].getRoutingMap()):
+                if NodeList[findNodePos(nb, NodeList)].updateRoutes(id, NodeList[findNodePos(id, NodeList)].getRoutingMap(), NetManager.getEdges(nb)):
+                    queue.append(nb)
                     changes = True
+                    
+def actionLog(message: str):
+    
+        maxLen = 60 - len(message)
+        sep = "-" * (maxLen // 2)
+        with open('log.txt', 'a') as log:
+            log.write(f"\n{sep} {message} {sep}\n")
+            
+def messageLog(message: str):
+    
+    with open('log.txt', 'a') as log:
+        log.write(f"{message}\n")
+
+#Test
+def dijkstra(graph: dict[int, list[EdgeMapEntry]], start: int) -> dict[int, int]:
+    distances = {node: float('infinity') for node in graph}
+    distances[start] = 0
+    priority_queue = [(0, start)]
+    
+    while priority_queue:
+        current_distance, current_node = heapq.heappop(priority_queue)
+        
+        if current_distance > distances[current_node]:
+            continue
+        
+        for edge in graph[current_node]:
+            distance = current_distance + edge.w
+            
+            if distance < distances[edge.dst]:
+                distances[edge.dst] = distance
+                heapq.heappush(priority_queue, (distance, edge.dst))
+    
+    return distances
+
+def is_minimum_distance(graph: dict[int, list[EdgeMapEntry]], node1: int, node2: int, distance: int) -> bool:
+    distances = dijkstra(graph, node1)
+    return distances[node2] == distance

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Upgrade pip inside the virtual environment to the latest version
+# Upgrade pip to the latest version
 echo -e "\e[32mUpgrading pip...\e[0m"
 pip install --upgrade pip
 
