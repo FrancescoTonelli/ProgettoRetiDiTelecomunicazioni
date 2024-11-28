@@ -32,7 +32,7 @@ Infine, ho implementato un'interfaccia grafica interattiva per permettere agli u
 ## Utilizzo
 All'avvio, l'applicazione si presenta come in figura, con una schermata bianca sulla sinistra e un menu sulla destra.
 
-![GUI](./images/initial_gui.png)
+![GUI](./images/initial_gui.PNG)
 
 Tramite questa interfaccia, è possibile:
 
