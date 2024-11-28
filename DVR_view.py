@@ -67,13 +67,13 @@ class GraphGUI:
         control_frame = tk.Frame(root)
         control_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
-        tk.Label(control_frame, text="Source").pack()
-        self.src_entry = tk.Entry(control_frame)
-        self.src_entry.pack()
+        tk.Label(control_frame, text="First Node").pack()
+        self.first_node_entry = tk.Entry(control_frame)
+        self.first_node_entry.pack()
         
-        tk.Label(control_frame, text="Destination").pack()
-        self.dst_entry = tk.Entry(control_frame)
-        self.dst_entry.pack()
+        tk.Label(control_frame, text="Second Node").pack()
+        self.second_node_entry = tk.Entry(control_frame)
+        self.second_node_entry.pack()
         
         tk.Label(control_frame, text="Weight").pack()
         self.w_entry = tk.Entry(control_frame)
@@ -106,22 +106,22 @@ class GraphGUI:
     def addEdge(self):
         """
         Adds an edge between two nodes using input from the control panel.
-        Validates input and ensures edge does not already exist.
+        An edge is valid if the nodes exist and are not the same, the weight is positive, and the edge does not already exist.
         """
         try:
-            if not self.src_entry.get().isdigit():
-                raise ValueError("Source must be an integer")
-            if not self.dst_entry.get().isdigit():
-                raise ValueError("Destination must be an integer")
+            if not self.first_node_entry.get().isdigit():
+                raise ValueError("First node must be an integer")
+            if not self.second_node_entry.get().isdigit():
+                raise ValueError("Second node must be an integer")
             if not self.w_entry.get().isdigit():
                 raise ValueError("Weight must be an integer")
             
-            src = int(self.src_entry.get())
-            dst = int(self.dst_entry.get())
+            src = int(self.first_node_entry.get())
+            dst = int(self.second_node_entry.get())
             w = int(self.w_entry.get())
             
-            self.src_entry.delete(0, tk.END)
-            self.dst_entry.delete(0, tk.END)
+            self.first_node_entry.delete(0, tk.END)
+            self.second_node_entry.delete(0, tk.END)
             self.w_entry.delete(0, tk.END)
 
             

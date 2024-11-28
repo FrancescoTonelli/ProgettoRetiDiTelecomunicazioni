@@ -1,5 +1,5 @@
 from tabulate import tabulate
-import heapq
+#import heapq
 
 class RoutingMapEntry:
     """
@@ -168,6 +168,7 @@ class WebNode:
         for k in self.__routingMap.keys():
             exists = False
             for e in edges:
+                #ping
                 if e.dst == self.__routingMap[k].nextHop:
                     if e.w != self.__routingMap[k].dist and e.dst == k:
                         self.__routingMap[k].dist = e.w
@@ -428,6 +429,8 @@ def updateNet(NodeList: list[WebNode], NetManager: EdgesMap, priorityNodesId:lis
         queue = priorityNodesId[:]
         
         changes = False
+        
+        #simulate the real order of updates
         while queue:
             id = queue.pop(0)
             for nb in NetManager.getNeighborsId(id):
