@@ -112,7 +112,7 @@ Memorizza gli archi e i nodi nella rete, e fornisce le funzioni per modificare q
 
 ---
 
-<b>Funzioni esterne</b>
+<b>Funzioni</b>
 
 - `findNodePos(id: int, NodeList: list[WebNode]) -> int`: trova la posizione del nodo con id indicato all'interno della NodeList.
 - `makeNodesReadNet(nodesId: list[int], NetManager: EdgesMap, NodeList: list[WebNode])`: simula il ping di un nodo verso i propri vicini, leggendo gli archi a lui connessi.
